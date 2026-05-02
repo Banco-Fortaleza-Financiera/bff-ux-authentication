@@ -1,0 +1,208 @@
+openapi: 3.0.3
+info:
+  title: BFF OpenAPI Support Authentication
+  version: 1.0.0
+  description: API for user authentication.
+  contact:
+    name: Banco Fortaleza Financiera
+
+servers:
+  - url: /
+    description: Default server.
+
+tags:
+  - name: Authentication
+    description: Operations related to user authentication.
+
+paths:
+  /support/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user
+      description: Authenticates a user using the user identifier and password.
+      operationId: authenticateUser
+      parameters:
+        - $ref: '#/components/parameters/XDeviceIpHeader'
+        - $ref: '#/components/parameters/XSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationRequest'
+      responses:
+        '200':
+          description: User authenticated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /support/v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Logs out the authenticated user and invalidates the current session.
+      operationId: logoutUser
+      parameters:
+        - $ref: '#/components/parameters/XDeviceIpHeader'
+        - $ref: '#/components/parameters/XSessionHeader'
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: User logged out successfully.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token sent in the Authorization header using the Bearer scheme.
+
+  parameters:
+    XDeviceIpHeader:
+      name: x-device-ip
+      in: header
+      required: true
+      description: Client device IP address.
+      schema:
+        type: string
+        minLength: 7
+        maxLength: 45
+        pattern: '^(((25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})|([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4})$'
+        example: "192.168.1.10"
+    XSessionHeader:
+      name: x-session
+      in: header
+      required: true
+      description: Client session identifier.
+      schema:
+        type: string
+        minLength: 36
+        maxLength: 36
+        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+        example: "7f2c1a54-4cf0-4d8c-9b18-2a6a57e7f7f3"
+
+  responses:
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Invalid authentication credentials.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    MethodNotAllowed:
+      description: Method not allowed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    AuthenticationRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        idUser:
+          type: integer
+          format: int32
+          minimum: 1
+          description: User identifier used as username.
+          example: 10
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+          writeOnly: true
+          example: "Str0ngP@ssword"
+      required:
+        - idUser
+        - password
+
+    AuthenticationResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        idUser:
+          type: integer
+          format: int32
+          minimum: 1
+          readOnly: true
+          example: 10
+        accessToken:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          readOnly: true
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+        tokenType:
+          type: string
+          minLength: 1
+          maxLength: 32
+          readOnly: true
+          example: "Bearer"
+        expiresIn:
+          type: integer
+          format: int32
+          minimum: 1
+          readOnly: true
+          description: Token lifetime in seconds.
+          example: 3600
+      required:
+        - idUser
+        - accessToken
+        - tokenType
+        - expiresIn
+
+    Error:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          minLength: 3
+          maxLength: 3
+          pattern: '^[0-9]{3}$'
+          example: "401"
+        message:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: Invalid authentication credentials.
+        detail:
+          type: string
+          maxLength: 500
+          example: The submitted user identifier or password is invalid.
+      required:
+        - code
+        - message
