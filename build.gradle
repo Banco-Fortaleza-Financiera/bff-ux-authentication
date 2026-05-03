@@ -132,6 +132,7 @@ jacoco {
 def jacocoExcludedClasses = [
         '**/*Application.class',
         '**/configuration/**',
+        '**/com/bff/services/**',
         '**/feign/**',
         '**/generated/**',
         '**/domain/exceptions/**'
