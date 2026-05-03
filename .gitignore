@@ -37,5 +37,3 @@ desktop.ini
 .env
 .env.*
 !.env.example
-
-bin/
